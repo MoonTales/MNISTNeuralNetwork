@@ -1,54 +1,47 @@
-"""
-TODO: Finish and submit your code for logistic regression, neural network, and hyperparameter search.
 
-"""
-
-import torch
-
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
+# Imports
 import torchvision
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, random_split
-
-import torch
+from torch.utils.data import DataLoader
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-
-
-
-
-### -- Logistic Regression -- ###
-
 
 def logistic_regression(device):
-    learning_rate = 2.3e-2   #2.3e-2
-    log_interval = 75 #75
-    n_epochs = 21 #21
-    results = dict(
-        model=None
-    )
+
+    class Hyperparameters:
+        """
+        Hyperparameters:
+            learning_rate = 2.3e-2 # How much we update the weights of our model during training
+            lambda_value = 0.1 # Regularization strength
+            n_epochs = 21 # How many times we pass over the complete training data during training
+            log_interval = 75 # How often we print an update during training
+        """
+        def __init__(self, learning_rate=2.3e-2, lambda_value=0.001, n_epochs=10, log_interval=75):
+            self.learning_rate = learning_rate
+            self.lambda_value = lambda_value
+            self.n_epochs = n_epochs
+            self.log_interval = log_interval
+    
+    Hyperparameters = Hyperparameters()
+    
     # Call our function to get the data loaders
     train_loader, validation_loader, test_loader = create_train_val_loaders()
+    
     # Create our classifier model
-    class MultipleLinearRegression(nn.Module):
+    class logistic_regression_class(nn.Module):
         def __init__(self):
-            super(MultipleLinearRegression, self).__init__()
+            super(logistic_regression_class, self).__init__()
             self.fc = nn.Linear(28*28, 10)
-
+            
         def forward(self, x):
             x = x.view(x.size(0), -1)
             x = self.fc(x)
             return F.softmax(x,dim=1)
 
-    multi_linear_model = MultipleLinearRegression().to(device)
+    logistic_regression_model = logistic_regression_class().to(device)
 
     # Use SGD optimizer
-    optimizer = torch.optim.SGD(multi_linear_model.parameters(), lr=learning_rate, momentum=0.9)
+    optimizer = torch.optim.SGD(logistic_regression_model.parameters(), lr=Hyperparameters.learning_rate, momentum=0.9)
 
-    def train(epoch, data_loader, model, optimizer):
+    def train(epoch, data_loader, model, optimizer, lambda_value):
         model.train()  # Set model to training mode
         for batch_idx, (data, target) in enumerate(data_loader):
             data = data.to(device)
@@ -57,11 +50,11 @@ def logistic_regression(device):
             output = model(data)
             loss = F.cross_entropy(output, target)
             # attempt L2 regularization
-            loss += 0.001 * torch.norm(model.fc.weight, 2) #0.01
+            loss += lambda_value * torch.norm(model.fc.weight, 2)
 
             loss.backward()
             optimizer.step()
-            if batch_idx % log_interval == 0:
+            if batch_idx % Hyperparameters.log_interval == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(data_loader.dataset),
                            100. * batch_idx / len(data_loader), loss.item()))
@@ -82,13 +75,14 @@ def logistic_regression(device):
         print(dataset + 'set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             loss, correct, len(data_loader.dataset), 100. * correct / len(data_loader.dataset)))
 
-    eval(validation_loader, multi_linear_model, "Validation")
-    for epoch in range(1, n_epochs + 1):
-        train(epoch, train_loader, multi_linear_model, optimizer)
-        eval(validation_loader, multi_linear_model, "Validation")
-    eval(test_loader, multi_linear_model, "Test")
+    eval(validation_loader, logistic_regression_model, "Validation")
+    for epoch in range(1, Hyperparameters.n_epochs + 1):
+        train(epoch, train_loader, logistic_regression_model, optimizer, lambda_value=Hyperparameters.lambda_value)
+        eval(validation_loader, logistic_regression_model, "Validation")
+    eval(test_loader, logistic_regression_model, "Test")
 
-    results['model'] = multi_linear_model
+    results = {}
+    results['model'] = logistic_regression_model
     return results
 
 def create_train_val_loaders(batch_size=64, val_size=12000):
