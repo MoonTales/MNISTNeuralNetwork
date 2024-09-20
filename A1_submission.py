@@ -159,10 +159,6 @@ class FNN(nn.Module):
         return loss
 
 def tune_hyper_parameter(target_metric, device):
-    #TODO; SWap back to Adam
-    # Redefine the Models that will be used for testing the hyperparameters
-    best_params, best_metric = None, None
-
     # Logistic Regression Model redefined
     class LogisticRegressionModel(nn.Module):
 
@@ -270,7 +266,7 @@ def tune_hyper_parameter(target_metric, device):
                 return accuracy
 
     # New Code for Learning Rate
-    Learning_rates_to_try = [3.23e-2, 3.24e-2, 3.25e-2]  # Learning rates to try
+    Learning_rates_to_try = [3.2e-2, 3.23e-2, 3.24e-2, 3.25e-2]
     num_epochs = 8  # Number of epochs to train for
     best_accuracy_lr = 0.0
     best_learning_rate = None
