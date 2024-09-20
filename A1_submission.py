@@ -144,7 +144,7 @@ class FNN(nn.Module):
         x = self.fc3(x)  # Output layer (logits)
 
         # Apply softmax to the output to get probabilities
-        x = F.log_softmax(x, dim=1)  # Use log_softmax for numerical stability
+        #x = F.log_softmax(x, dim=1)  # Use log_softmax for numerical stability
 
         return x
 
@@ -267,7 +267,7 @@ def tune_hyper_parameter(target_metric, device):
 
     # New Code for Learning Rate
     Learning_rates_to_try = [3.2e-2, 3.23e-2, 3.24e-2, 3.25e-2]
-    num_epochs = 8  # Number of epochs to train for
+    num_epochs = 2  # Number of epochs to train for
     best_accuracy_lr = 0.0
     best_learning_rate = None
     # Loop through all of the learning rates
@@ -280,9 +280,8 @@ def tune_hyper_parameter(target_metric, device):
         # Train the model
         for epoch in range(1, num_epochs + 1):
             model.train_model(epoch, model.train_loader, model, optimizer, model.Hyperparameters.lambda_value)
-        
-        # Evaluate the model
-        validation_accuracy = model.evaluate(model.validation_loader, model, "Validation", False, True)
+            # Evaluate the model
+            validation_accuracy = model.evaluate(model.validation_loader, model, "Validation", False, True)
         
         # Compare with the best accuracy
         if validation_accuracy > best_accuracy_lr:
@@ -306,9 +305,8 @@ def tune_hyper_parameter(target_metric, device):
         # Train the model
         for epoch in range(num_epochs + 1):  # Use base_epochs_log = 3
             model.train_model(epoch, model.train_loader, model, optimizer, lam)
-
-        # Evaluate the model
-        validation_accuracy = model.evaluate(model.validation_loader, model, "Validation", False, True)
+            # evaluate the model every epoch and store the best result
+            validation_accuracy = model.evaluate(model.validation_loader, model, "Validation", False, True)
 
         # Compare with the best accuracy
         if validation_accuracy > best_accuracy_lam:
