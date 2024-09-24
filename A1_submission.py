@@ -180,7 +180,7 @@ class FNN(nn.Module):
         x = self.fc3(x)  # Output layer (logits)
 
         # Apply softmax to the output to get probabilities
-        x = F.log_softmax(x, dim=1)
+        x = F.softmax(x, dim=1)
 
         return x
 
@@ -412,7 +412,7 @@ def tune_hyper_parameter(target_metric, device):
                 x = self.fc3(x)  # Output layer (logits)
 
                 # Apply softmax to the output to get probabilities
-                #x = F.log_softmax(x, dim=1)  # Use log_softmax for numerical stability
+                x = F.softmax(x, dim=1)  # Use log_softmax for numerical stability
 
                 return x
 
