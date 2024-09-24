@@ -11,7 +11,7 @@ class Params:
         test = 1000
 
     def __init__(self):
-        self.mode = 'tune'
+        self.mode = 'fnn'
         #self.model = 'tune' # uncommented this for testing
         self.target_metric = 'accuracy'
         # self.target_metric = 'loss'
