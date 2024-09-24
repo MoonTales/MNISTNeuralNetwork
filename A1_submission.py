@@ -55,7 +55,8 @@ def logistic_regression(device):
                                                                                                   transform=transform)
             self.Optimizer = torch.optim.SGD(self.parameters(), lr=self.Hyperparameters.learning_rate,
                                              momentum=self.Hyperparameters.momentum,
-                                             weight_decay=self.Hyperparameters.weight_decay)
+                                             weight_decay=self.Hyperparameters.weight_decay,
+                                             nesterov=True) # added this line
         
         def set_hyperparameters(self, n_epochs, learning_rate, weight_decay, momentum, log_interval):
             '''
@@ -148,6 +149,7 @@ def logistic_regression(device):
                 return accuracy
 
     LRM = LogisticRegressionModel().to(device)
+    # 10, 0.014, 01e-05, 0.95, 75 -> this provides: acc 92.75 with a mark of 97.499
     LRM.set_hyperparameters(n_epochs=10, learning_rate=0.014, weight_decay=01e-05, momentum=0.95, log_interval=75)
     LRM.evaluate(LRM.validation_loader, LRM, "Validation")
     for epoch in range(1, LRM.Hyperparameters.n_epochs + 1):
@@ -198,6 +200,8 @@ class FNN(nn.Module):
 def tune_hyper_parameter(target_metric, device):
 
     # Redefine the LogisticRegressionModel
+    
+    # current best lr = 0.018, weight_decay = 1e-05 [11]
     class LogisticRegressionModel(nn.Module):
 
         class Hyperparameters:
@@ -342,9 +346,9 @@ def tune_hyper_parameter(target_metric, device):
     max_epochs = 15  # Maximum number of epochs
     
     # Define the hyperparameters to search over
-    # what to submit, lr = 0.016, weight_decay = 1e-05
-    learning_rates = [round(1.0e-2 + i * 0.1e-2, 6) for i in range(16)]
-    weight_decays = [0.001, 0.0001, 0.00001]
+    # what to submit, lr = 0.018, weight_decay = 1e-05 epoch 10
+    learning_rates = [0.018, 0.019,0.020,0.021,0.022,0.023,0.024,0.025]
+    weight_decays = [0.0001]
     # Grid search over the hyperparameter combinations
     for lr in learning_rates:
         for wd in weight_decays:
