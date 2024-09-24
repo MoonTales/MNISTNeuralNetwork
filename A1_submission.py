@@ -250,8 +250,6 @@ def tune_hyper_parameter(target_metric, device):
                 self.train_loader, self.validation_loader, self.test_loader = self.create_Dataloaders(batch_size=64,
                                                                                                       val_size=12000,
                                                                                                       transform=transform)
-                self.Optimizer = torch.optim.Adam(self.parameters(), lr=self.Hyperparameters.learning_rate,
-                                                  weight_decay=self.Hyperparameters.weight_decay)
 
             def set_hyperparameters(self, n_epochs, learning_rate, weight_decay, momentum, log_interval):
                 '''
@@ -262,9 +260,7 @@ def tune_hyper_parameter(target_metric, device):
                 self.Hyperparameters.set_weight_decay(weight_decay)
                 self.Hyperparameters.set_momentum(momentum)
                 self.Hyperparameters.set_log_interval(log_interval)
-                self.Optimizer = torch.optim.SGD(self.parameters(), lr=self.Hyperparameters.learning_rate,
-                                                 momentum=self.Hyperparameters.momentum,
-                                                 weight_decay=self.Hyperparameters.weight_decay)
+
                 # -------------------------------- #
 
             def forward(self, x):
@@ -331,7 +327,7 @@ def tune_hyper_parameter(target_metric, device):
                         target = target.to(device)
                         output = model(data)
                         pred = output.data.max(1, keepdim=True)[1]
-                        correct += pred.eq(target.data.view_as(pred)).sum()
+                        correct += pred.eq(target.data.view_as(pred)).sum().item()
                         loss += F.cross_entropy(output, target, reduction='sum').item()
 
                 loss /= len(data_loader.dataset)
@@ -345,8 +341,7 @@ def tune_hyper_parameter(target_metric, device):
                     return accuracy
         best_accuracy = 0
         best_params = None
-        dynamic_epochs = 5  # Start with a default number of epochs
-        max_epochs = 15  # Maximum number of epochs
+        n_epochs = 7  # Start with a default number of epochs
 
         # Define the hyperparameters to search over
         # what to submit, lr = 0.016, weight_decay = 1e-05
@@ -354,9 +349,11 @@ def tune_hyper_parameter(target_metric, device):
         Values attemped from previous runs:
         learning_rates = [0.010, 0.011, 0.012, 0.013, 0.014, 0.015, 0.016, 0.017, 0.018, 0.019, 0.020]
         weight_decays = [0.01, 0.001, 0.0001, 0.00001]
+        to many to list them all
         '''
-        learning_rates = [0.016, 0.018]
-        weight_decays = [0.0001, 0.00001]
+        # Best hyperparameters Logistic: lr=0.001, weight_decay=5e-05 with accuracy 92.96%
+        learning_rates = [0.0014, 0.001]
+        weight_decays = [5e-05, 4.8e-05, 4.7e-05]
 
         # Grid search over the hyperparameter combinations
         for lr in learning_rates:
@@ -364,26 +361,22 @@ def tune_hyper_parameter(target_metric, device):
                 print(f"-- Testing with lr={lr}, weight_decay={wd} --")
                 LRM = LogisticRegressionModel().to(device)
                 # Set the hyperparameters for the current test
-                LRM.set_hyperparameters(n_epochs=dynamic_epochs,  # Start with the tracked dynamic_epochs
+                LRM.set_hyperparameters(n_epochs=n_epochs,  # Start with the tracked dynamic_epochs
                                         learning_rate=lr,
                                         weight_decay=wd,
-                                        momentum=0.95,
+                                        momentum=0.95, #wont use this
                                         log_interval=LRM.Hyperparameters.log_interval)
 
                 # Train and evaluate for each epoch (up to dynamic_epochs)
-                for epoch in range(1, dynamic_epochs + 1):
-                    LRM.train_model(epoch, LRM.train_loader, LRM, LRM.Optimizer, show_output=False)
+                for epoch in range(1, n_epochs + 1):
+                    Opt = torch.optim.Adam(LRM.parameters(), lr=lr, weight_decay=wd)
+                    LRM.train_model(epoch, LRM.train_loader, LRM, Opt, show_output=False)
                     val_accuracy = LRM.evaluate(LRM.validation_loader, LRM, "Validation", print_to_log=False, return_accuracy=True)
                     # Check if this combination gives a better accuracy
                     if val_accuracy > best_accuracy:
                         best_accuracy = val_accuracy
                         best_params = (lr, wd)
                         print(f"IMPORTANT - New best accuracy: {best_accuracy:.2f}% with lr={lr}, weight_decay={wd} at epoch [{epoch}]")
-                        # continue training for more epochs if the accuracy is still improving
-                        dynamic_epochs = epoch + 1
-                        # just don't go over the max_epochs
-                        if epoch > max_epochs:
-                            break
 
         print(f"Best hyperparameters Logistic: lr={best_params[0]}, weight_decay={best_params[1]} with accuracy {best_accuracy:.2f}%")
 
@@ -434,13 +427,17 @@ def tune_hyper_parameter(target_metric, device):
         train_loader, val_loader, test_loader = FNN_main.get_dataloaders(Params.BatchSize)
         best_accuracy = 0
         best_params = None
-        dynamic_epochs = 5  # Start with a default number of epochs
-        max_epochs = 15  # Maximum number of epochs
+        n_epochs = 7  # Start with a default number of epochs
 
         # Define the hyperparameters to search over
-        # check 0.0005 and 0.0005
+        '''
+        Aloot of values where attempted, only a small portion will be shown here
+        learning_rates = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2]
+        weight_decays = [1e-5, 5e-4, 4.9e-4, 4.8e-4, 4.7e-4]
+        did not keep track of all of them, as it was a LOT of testing
+        '''
         learning_rates = [1e-4, 5e-4]
-        weight_decays = [1e-5, 5e-4]
+        weight_decays = [1e-5, 5e-4, 4.9e-4]
         # Grid search over the hyperparameter combinations
 
         # New training function
@@ -492,16 +489,13 @@ def tune_hyper_parameter(target_metric, device):
                 # Initialize FNN with the correct arguments
                 FNN = FNN_class(loss_type='ce', num_classes=10).to(device)
                 optimizer = torch.optim.Adam(FNN.parameters(), lr=lr, weight_decay=wd)
-                for epoch in range(1, dynamic_epochs + 1):
+                for epoch in range(1, n_epochs + 1):
                     train_FNN(FNN, optimizer, train_loader, device)
                     val_accuracy = validation_FNN(FNN, val_loader, device)
                     if val_accuracy > best_accuracy:
                         best_accuracy = val_accuracy
                         best_params = (lr, wd)
                         print(f"IMPORTANT - New best accuracy: {best_accuracy:.2f}% with lr={lr}, weight_decay={wd} at epoch [{epoch}]")
-                        dynamic_epochs = epoch + 1
-                        if epoch > max_epochs:
-                            break
 
         print(f"Best hyperparameters FNN: lr={best_params[0]}, weight_decay={best_params[1]} with accuracy {best_accuracy:.2f}%")
 
